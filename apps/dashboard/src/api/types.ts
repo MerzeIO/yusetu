@@ -9,6 +9,7 @@ import type {
   PatchMemberRole,
   PlaygroundCall,
   Role,
+  UpdateApiKey,
   UpdateTool,
   UpdateUpstream as SharedUpdateUpstream,
   UpstreamGrant,
@@ -26,10 +27,20 @@ export type {
   PatchMemberRole,
   PlaygroundCall,
   Role,
+  UpdateApiKey,
   UpdateTool,
   UpstreamGrant,
   UpstreamTransport,
   UpstreamVisibility,
+};
+
+export type ApiKeyScopeMode = "unrestricted" | "groups";
+
+export type McpGroup = {
+  id: string;
+  name: string;
+  createdAt: string;
+  upstreamIds: string[];
 };
 
 export type UpstreamAuthMode = "none" | "oauth";
@@ -130,6 +141,9 @@ export type ApiKey = {
   keyPrefix: string;
   createdAt: string;
   lastUsedAt?: string | null;
+  scopeMode: ApiKeyScopeMode;
+  groupIds: string[];
+  enabled?: boolean;
 };
 
 export type CreateApiKeyResponse = ApiKey & {

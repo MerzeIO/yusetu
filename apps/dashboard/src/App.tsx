@@ -19,13 +19,14 @@ import { authApi, healthApi } from "./api";
 import type { AuthMeResponse } from "./api/types";
 import { Layout } from "./components/Layout";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
+import { GroupsPage } from "./pages/GroupsPage";
+import { JoinPage } from "./pages/JoinPage";
 import { LoginPage } from "./pages/LoginPage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SetupPage } from "./pages/SetupPage";
-import { ToolsPage } from "./pages/ToolsPage";
-import { JoinPage } from "./pages/JoinPage";
 import { TeamPage } from "./pages/TeamPage";
+import { ToolsPage } from "./pages/ToolsPage";
 import { UpstreamsPage } from "./pages/UpstreamsPage";
 
 const queryClient = new QueryClient({
@@ -220,6 +221,7 @@ function AppRoutes({
         <Route path="/" element={<Navigate to="/mcps" replace />} />
         <Route path="/mcps" element={<UpstreamsPage />} />
         <Route path="/upstreams" element={<Navigate to="/mcps" replace />} />
+        <Route path="/groups" element={<GroupsPage />} />
         <Route path="/tools" element={<ToolsPage />} />
         <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />

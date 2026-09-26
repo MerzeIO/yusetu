@@ -5,6 +5,7 @@ import { UserAvatar } from "./UserAvatar";
 
 const baseLinks = [
   { to: "/mcps", label: "MCPs" },
+  { to: "/groups", label: "Groups" },
   { to: "/tools", label: "Tools" },
   { to: "/playground", label: "Playground" },
   { to: "/analytics", label: "Analytics" },
@@ -23,9 +24,9 @@ export function Layout({ user, onLogout, loggingOut, children }: LayoutProps) {
     user.capabilities.canInvite || user.capabilities.canManageUsers;
   const links = showTeam
     ? [
-        ...baseLinks.slice(0, 4),
+        ...baseLinks.slice(0, 5),
         { to: "/team" as const, label: "Team" },
-        ...baseLinks.slice(4),
+        ...baseLinks.slice(5),
       ]
     : [...baseLinks];
 
