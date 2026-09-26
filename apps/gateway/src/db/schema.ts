@@ -189,6 +189,38 @@ export const apiKeys = sqliteTable("api_keys", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  scopeMode: text("scope_mode", {
+    enum: ["unrestricted", "groups"],
+  })
+    .notNull()
+    .default("groups"),
+});
+
+export const mcpGroups = sqliteTable("mcp_groups", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const mcpGroupMembers = sqliteTable("mcp_group_members", {
+  groupId: text("group_id")
+    .notNull()
+    .references(() => mcpGroups.id, { onDelete: "cascade" }),
+  upstreamId: text("upstream_id")
+    .notNull()
+    .references(() => upstreams.id, { onDelete: "cascade" }),
+});
+
+export const apiKeyGroups = sqliteTable("api_key_groups", {
+  apiKeyId: text("api_key_id")
+    .notNull()
+    .references(() => apiKeys.id, { onDelete: "cascade" }),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => mcpGroups.id, { onDelete: "cascade" }),
 });
 
 export const settings = sqliteTable("settings", {
@@ -277,6 +309,9 @@ export type UserUpstreamOauth = typeof userUpstreamOauth.$inferSelect;
 export type UpstreamGrant = typeof upstreamGrants.$inferSelect;
 export type Tool = typeof tools.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
+export type McpGroup = typeof mcpGroups.$inferSelect;
+export type McpGroupMember = typeof mcpGroupMembers.$inferSelect;
+export type ApiKeyGroup = typeof apiKeyGroups.$inferSelect;
 export type Setting = typeof settings.$inferSelect;
 export type UsageEvent = typeof usageEvents.$inferSelect;
 export type OauthClient = typeof oauthClients.$inferSelect;

@@ -168,10 +168,39 @@ export const PlaygroundCallSchema = z.object({
 });
 export type PlaygroundCall = z.infer<typeof PlaygroundCallSchema>;
 
-export const CreateApiKeySchema = z.object({
+export const ApiKeyScopeModeSchema = z.enum(["unrestricted", "groups"]);
+export type ApiKeyScopeMode = z.infer<typeof ApiKeyScopeModeSchema>;
+
+export const CreateMcpGroupSchema = z.object({
   name: z.string().min(1).max(128),
 });
+export type CreateMcpGroup = z.infer<typeof CreateMcpGroupSchema>;
+
+export const UpdateMcpGroupSchema = z.object({
+  name: z.string().min(1).max(128),
+});
+export type UpdateMcpGroup = z.infer<typeof UpdateMcpGroupSchema>;
+
+export const ReplaceMcpGroupMembersSchema = z.object({
+  upstreamIds: z.array(z.string().min(1)).max(500),
+});
+export type ReplaceMcpGroupMembers = z.infer<
+  typeof ReplaceMcpGroupMembersSchema
+>;
+
+export const CreateApiKeySchema = z.object({
+  name: z.string().min(1).max(128),
+  scopeMode: ApiKeyScopeModeSchema.optional(),
+  groupIds: z.array(z.string().min(1)).max(100).optional(),
+});
 export type CreateApiKey = z.infer<typeof CreateApiKeySchema>;
+
+export const UpdateApiKeySchema = z.object({
+  name: z.string().min(1).max(128).optional(),
+  scopeMode: ApiKeyScopeModeSchema.optional(),
+  groupIds: z.array(z.string().min(1)).max(100).optional(),
+});
+export type UpdateApiKey = z.infer<typeof UpdateApiKeySchema>;
 
 /** Exposed tool name: `{slug}__{originalName}` */
 export function exposedToolName(slug: string, originalName: string): string {
