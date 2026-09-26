@@ -257,7 +257,7 @@ Open registration is disabled; new accounts require a valid invite after setup.
 Then for each user:
 
 1. Add MCPs (shared team MCPs for admins; personal MCPs for anyone)
-2. Create an API key in **Settings** (keys are per user and only expose that user’s catalog)
+2. Optionally create **Groups** of MCPs by use case, then mint API keys in **Settings** that expose only those groups (or leave a key unrestricted)
 3. Connect Cursor or Claude with the configs above
 
 Production-style:
@@ -313,12 +313,16 @@ That promise is about **this open-source project**. It does not imply a future h
 
 ---
 
+## MCP groups and scoped API keys
+
+Organize visible MCPs into personal **Groups** (many-to-many). Bind an API key to one or more groups so `/mcp` only lists tools from those MCPs. Existing keys stay unrestricted after upgrade. New keys default to groups mode with an empty set until you attach groups. Dashboard session and playground keep the full catalog.
+
 ## What's next
 
 Planned — **not** available yet:
 
-1. **Tool groups** — group tools by use case (GitHub, databases, DevOps, …).
-2. **Scoped API keys** — multiple keys already exist; planned: restrict a key to specific tools.
+1. **Per-tool allowlists** on a key or inside a group
+2. **Shared / team-owned groups**
 3. **MCP health monitoring** — upstreams already show healthy/unhealthy; planned: alerts when an MCP goes down.
 
 ---
