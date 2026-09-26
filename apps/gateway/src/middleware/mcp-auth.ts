@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { AuthContext } from "../auth/context.js";
-import { parseRole } from "../auth/context.js";
+import { parseApiKeyScopeMode, parseRole } from "../auth/context.js";
 import type { GatewayConfig } from "../config.js";
 import { getDb } from "../db/index.js";
 import { apiKeys, settings, users } from "../db/schema.js";
@@ -63,7 +63,13 @@ function resolveApiKey(raw: string): AuthContext | null {
     .where(eq(apiKeys.id, key.id))
     .run();
 
-  return authContextForUserId(key.userId);
+  const base = authContextForUserId(key.userId);
+  if (!base) return null;
+  return {
+    ...base,
+    apiKeyId: key.id,
+    scopeMode: parseApiKeyScopeMode(key.scopeMode),
+  };
 }
 
 function resolveOauthAccessToken(

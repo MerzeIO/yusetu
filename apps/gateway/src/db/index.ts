@@ -3,6 +3,7 @@ import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3"
 import path from "node:path";
 import * as schema from "./schema.js";
 import { migrateGrantsV1 } from "./migrate-grants.js";
+import { migrateMcpGroupsV1 } from "./migrate-mcp-groups.js";
 import { migratePersonalFirstV1 } from "./migrate-personal-first.js";
 import { migrateTeamsV1 } from "./migrate-teams.js";
 
@@ -138,7 +139,25 @@ CREATE TABLE IF NOT EXISTS api_keys (
   user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL,
   last_used_at INTEGER,
-  enabled INTEGER NOT NULL DEFAULT 1
+  enabled INTEGER NOT NULL DEFAULT 1,
+  scope_mode TEXT NOT NULL DEFAULT 'groups'
+);
+
+CREATE TABLE IF NOT EXISTS mcp_groups (
+  id TEXT PRIMARY KEY NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS mcp_group_members (
+  group_id TEXT NOT NULL REFERENCES mcp_groups(id) ON DELETE CASCADE,
+  upstream_id TEXT NOT NULL REFERENCES upstreams(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS api_key_groups (
+  api_key_id TEXT NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,
+  group_id TEXT NOT NULL REFERENCES mcp_groups(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS settings (
@@ -218,6 +237,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_upstream_grants_upstream_user
   ON upstream_grants(upstream_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_upstream_grants_user_id
   ON upstream_grants(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_groups_user_name
+  ON mcp_groups(user_id, name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_group_members_group_upstream
+  ON mcp_group_members(group_id, upstream_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_api_key_groups_key_group
+  ON api_key_groups(api_key_id, group_id);
 `;
 
 /** Light migrations for existing DBs created before schema additions. */
@@ -287,6 +312,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_events_mcp_slug ON usage_events(mcp_slug);
   migrateTeamsV1(sqlite, dataDir);
   migrateGrantsV1(sqlite);
   migratePersonalFirstV1(sqlite);
+  migrateMcpGroupsV1(sqlite);
 }
 
 export function openDb(dbPath: string): Db {

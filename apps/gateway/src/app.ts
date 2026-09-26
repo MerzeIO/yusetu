@@ -16,7 +16,15 @@ import {
   createApiKey,
   deleteApiKey,
   listApiKeys,
+  patchApiKey,
 } from "./admin/api-keys.js";
+import {
+  createMcpGroup,
+  deleteMcpGroup,
+  listMcpGroups,
+  replaceMcpGroupMembers,
+  updateMcpGroup,
+} from "./admin/mcp-groups.js";
 import { createPlaygroundHandler } from "./admin/playground.js";
 import { createUsageAnalyticsHandler } from "./admin/analytics.js";
 import { createHealthHandler } from "./admin/routes.js";
@@ -151,7 +159,18 @@ export function createApp(
 
   app.get("/api/api-keys", requireSession, listApiKeys);
   app.post("/api/api-keys", requireSession, createApiKey);
+  app.patch("/api/api-keys/:id", requireSession, patchApiKey);
   app.delete("/api/api-keys/:id", requireSession, deleteApiKey);
+
+  app.get("/api/mcp-groups", requireSession, listMcpGroups);
+  app.post("/api/mcp-groups", requireSession, createMcpGroup);
+  app.patch("/api/mcp-groups/:id", requireSession, updateMcpGroup);
+  app.delete("/api/mcp-groups/:id", requireSession, deleteMcpGroup);
+  app.put(
+    "/api/mcp-groups/:id/members",
+    requireSession,
+    replaceMcpGroupMembers,
+  );
 
   app.get(
     "/api/analytics/usage",

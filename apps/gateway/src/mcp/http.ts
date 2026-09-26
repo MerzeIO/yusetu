@@ -9,6 +9,7 @@ import { getLogger } from "../logger.js";
 import { createFacadeServer } from "./facade.js";
 import type { ToolRouter } from "./router.js";
 import type { UpstreamPool } from "../upstreams/pool.js";
+import type { CatalogKeyScope } from "../upstreams/catalog.js";
 
 type SessionEntry = {
   transport: WebStandardStreamableHTTPServerTransport;
@@ -16,7 +17,7 @@ type SessionEntry = {
   userId: string;
 };
 
-function requireMcpUserId(c: Context): string | Response {
+function mcpAuthFromContext(c: Context): AuthContext | Response {
   const auth = c.get("auth") as AuthContext | undefined;
   if (!auth?.userId) {
     return c.json(
@@ -32,7 +33,12 @@ function requireMcpUserId(c: Context): string | Response {
       401,
     );
   }
-  return auth.userId;
+  return auth;
+}
+
+function keyScopeFromAuth(auth: AuthContext): CatalogKeyScope | undefined {
+  if (!auth.apiKeyId || !auth.scopeMode) return undefined;
+  return { apiKeyId: auth.apiKeyId, scopeMode: auth.scopeMode };
 }
 
 /**
@@ -49,7 +55,7 @@ export function createMcpHttpHandler(
   const sessions = new Map<string, SessionEntry>();
   const log = getLogger("data");
 
-  const newServer = (userId: string) =>
+  const newServer = (userId: string, keyScope?: CatalogKeyScope) =>
     createFacadeServer(
       router,
       pool,
@@ -57,6 +63,7 @@ export function createMcpHttpHandler(
       presentation,
       inlineTinyMcps,
       schemaCompression,
+      keyScope,
     );
 
   return async (c: Context): Promise<Response> => {
@@ -87,14 +94,15 @@ export function createMcpHttpHandler(
       body = undefined;
     }
 
-    const userIdOrResponse = requireMcpUserId(c);
-    if (userIdOrResponse instanceof Response) {
-      return userIdOrResponse;
+    const authOrResponse = mcpAuthFromContext(c);
+    if (authOrResponse instanceof Response) {
+      return authOrResponse;
     }
-    const userId = userIdOrResponse;
+    const userId = authOrResponse.userId;
+    const keyScope = keyScopeFromAuth(authOrResponse);
 
     if (c.req.method === "POST" && body && isInitializeRequest(body)) {
-      const server = newServer(userId);
+      const server = newServer(userId, keyScope);
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         enableJsonResponse: true,
@@ -121,7 +129,7 @@ export function createMcpHttpHandler(
     }
 
     if (c.req.method === "POST") {
-      const server = newServer(userId);
+      const server = newServer(userId, keyScope);
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
         enableJsonResponse: true,

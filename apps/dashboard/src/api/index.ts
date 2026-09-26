@@ -11,12 +11,14 @@ import type {
   HealthResponse,
   JoinBody,
   JoinResponse,
+  McpGroup,
   PatchMemberRole,
   PlaygroundCall,
   PlaygroundCallResponse,
   TeamInvite,
   TeamMember,
   Tool,
+  UpdateApiKey,
   UpdateTool,
   UpdateUpstream,
   Upstream,
@@ -157,11 +159,39 @@ export const playgroundApi = {
     }),
 };
 
+export const mcpGroupsApi = {
+  list: () => apiFetch<McpGroup[]>("/api/mcp-groups"),
+  create: (body: { name: string }) =>
+    apiFetch<McpGroup>("/api/mcp-groups", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  update: (id: string, body: { name: string }) =>
+    apiFetch<McpGroup>(`/api/mcp-groups/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  remove: (id: string) =>
+    apiFetch<void>(`/api/mcp-groups/${id}`, {
+      method: "DELETE",
+    }),
+  replaceMembers: (id: string, body: { upstreamIds: string[] }) =>
+    apiFetch<McpGroup>(`/api/mcp-groups/${id}/members`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+};
+
 export const apiKeysApi = {
   list: () => apiFetch<ApiKey[]>("/api/api-keys"),
   create: (body: CreateApiKey) =>
     apiFetch<CreateApiKeyResponse>("/api/api-keys", {
       method: "POST",
+      body: JSON.stringify(body),
+    }),
+  patch: (id: string, body: UpdateApiKey) =>
+    apiFetch<ApiKey>(`/api/api-keys/${id}`, {
+      method: "PATCH",
       body: JSON.stringify(body),
     }),
   remove: (id: string) =>
