@@ -16,6 +16,7 @@ import {
   createApiKey,
   deleteApiKey,
   listApiKeys,
+  patchApiKey,
 } from "./admin/api-keys.js";
 import {
   createMcpGroup,
@@ -158,6 +159,7 @@ export function createApp(
 
   app.get("/api/api-keys", requireSession, listApiKeys);
   app.post("/api/api-keys", requireSession, createApiKey);
+  app.patch("/api/api-keys/:id", requireSession, patchApiKey);
   app.delete("/api/api-keys/:id", requireSession, deleteApiKey);
 
   app.get("/api/mcp-groups", requireSession, listMcpGroups);
