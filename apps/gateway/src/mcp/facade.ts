@@ -22,6 +22,7 @@ import { getLogger } from "../logger.js";
 import {
   catalogToolsForUser,
   visibleUpstreamIdsForUser,
+  type CatalogKeyScope,
 } from "../upstreams/catalog.js";
 import type { ToolRouter } from "./router.js";
 import {
@@ -52,8 +53,12 @@ function jsonResult(data: unknown, isError = false): CallToolResult {
   };
 }
 
-function toolsForSlug(userId: string, slug: string): SnapshotTool[] {
-  return catalogToolsForUser(userId).filter((t) => t.slug === slug);
+function toolsForSlug(
+  userId: string,
+  slug: string,
+  keyScope?: CatalogKeyScope,
+): SnapshotTool[] {
+  return catalogToolsForUser(userId, keyScope).filter((t) => t.slug === slug);
 }
 
 function catalogHashForTools(tools: SnapshotTool[]): string {
@@ -132,8 +137,12 @@ function estimateCallPayloadTokens(
   return estimateJsonTokens(args) + estimateJsonTokens(result.content);
 }
 
-function recordToolsListUsage(userId: string, listed: Tool[]): void {
-  const callerCatalog = catalogToolsForUser(userId);
+function recordToolsListUsage(
+  userId: string,
+  listed: Tool[],
+  keyScope?: CatalogKeyScope,
+): void {
+  const callerCatalog = catalogToolsForUser(userId, keyScope);
   recordUsageEvent({
     kind: "tools_list",
     mcpSlug: null,
@@ -196,10 +205,11 @@ async function handleMetaCall(
   router: ToolRouter,
   pool: UpstreamPool,
   schemaCompression: boolean,
+  keyScope?: CatalogKeyScope,
 ): Promise<CallToolResult> {
   if (name === META_LIST_MCPS) {
     const db = getDb();
-    const visible = visibleUpstreamIdsForUser(userId);
+    const visible = visibleUpstreamIdsForUser(userId, keyScope);
     const rows = db
       .select()
       .from(upstreams)
@@ -207,7 +217,7 @@ async function handleMetaCall(
       .all()
       .filter((row) => visible.has(row.id));
     const mcps = rows.map((row) => {
-      const tools = toolsForSlug(userId, row.slug);
+      const tools = toolsForSlug(userId, row.slug, keyScope);
       const st = pool.getStatus(userId, row.id);
       return {
         slug: row.slug,
@@ -238,7 +248,9 @@ async function handleMetaCall(
       k: args.k as number | undefined,
     });
     const allowed = new Set(
-      catalogToolsForUser(userId).map((t) => `${t.slug}\0${t.originalName}`),
+      catalogToolsForUser(userId, keyScope).map(
+        (t) => `${t.slug}\0${t.originalName}`,
+      ),
     );
     const tools = hits.filter((h) => allowed.has(`${h.mcp}\0${h.tool}`));
 
@@ -268,7 +280,7 @@ async function handleMetaCall(
     const detail = parseListToolsDetail(args.detail);
     const ifNoneMatch = String(args.ifNoneMatch ?? "").trim();
 
-    const catalog = toolsForSlug(userId, mcp);
+    const catalog = toolsForSlug(userId, mcp, keyScope);
     const hash = catalogHashForTools(catalog);
 
     if (ifNoneMatch && ifNoneMatch === hash) {
@@ -318,7 +330,9 @@ async function handleMetaCall(
     if (!mcp || !tool) {
       return jsonResult({ error: "mcp and tool are required" }, true);
     }
-    const found = toolsForSlug(userId, mcp).find((t) => t.originalName === tool);
+    const found = toolsForSlug(userId, mcp, keyScope).find(
+      (t) => t.originalName === tool,
+    );
     if (!found) {
       const errPayload = {
         error: `Tool "${tool}" not found on mcp "${mcp}". Use yusetu_list_tools to discover names.`,
@@ -370,7 +384,7 @@ async function handleMetaCall(
     // Accept either original name or already-namespaced exposed name
     const exposed =
       tool.includes("__") ? tool : exposedToolName(mcp, tool);
-    const result = await router.callTool(userId, exposed, toolArgs);
+    const result = await router.callTool(userId, exposed, toolArgs, keyScope);
     recordToolCallUsage(mcp, tool, toolArgs, result, userId);
     return result;
   }
@@ -390,6 +404,7 @@ export function createFacadeServer(
   presentation: ToolPresentation = "meta",
   inlineTinyMcps = false,
   schemaCompression = true,
+  keyScope?: CatalogKeyScope,
 ): Server {
   const server = new Server(
     { name: "yusetu", version: VERSION },
@@ -401,7 +416,7 @@ export function createFacadeServer(
       const tools = [...metaToolDescriptors()];
       if (inlineTinyMcps) {
         const bySlug = new Map<string, SnapshotTool[]>();
-        for (const t of catalogToolsForUser(userId)) {
+        for (const t of catalogToolsForUser(userId, keyScope)) {
           const list = bySlug.get(t.slug);
           if (list) list.push(t);
           else bySlug.set(t.slug, [t]);
@@ -423,10 +438,10 @@ export function createFacadeServer(
         },
         "mcp tools/list",
       );
-      recordToolsListUsage(userId, tools);
+      recordToolsListUsage(userId, tools, keyScope);
       return { tools };
     }
-    const tools = catalogToolsForUser(userId).map(toFlatListTool);
+    const tools = catalogToolsForUser(userId, keyScope).map(toFlatListTool);
     getLogger("data").info(
       {
         toolPresentation: presentation,
@@ -435,7 +450,7 @@ export function createFacadeServer(
       },
       "mcp tools/list",
     );
-    recordToolsListUsage(userId, tools);
+    recordToolsListUsage(userId, tools, keyScope);
     return { tools };
   });
 
@@ -454,12 +469,13 @@ export function createFacadeServer(
             router,
             pool,
             schemaCompression,
+            keyScope,
           );
         }
         // Allow direct slug__tool calls as escape hatch — still record usage
         if (name.includes("__")) {
           const parsed = parseExposedToolName(name);
-          const result = await router.callTool(userId, name, args);
+          const result = await router.callTool(userId, name, args, keyScope);
           if (parsed) {
             recordToolCallUsage(parsed.slug, parsed.originalName, args, result, userId);
           }
@@ -473,7 +489,7 @@ export function createFacadeServer(
         );
       }
 
-      const result = await router.callTool(userId, name, args);
+      const result = await router.callTool(userId, name, args, keyScope);
       const parsed = parseExposedToolName(name);
       if (parsed) {
         recordToolCallUsage(parsed.slug, parsed.originalName, args, result, userId);

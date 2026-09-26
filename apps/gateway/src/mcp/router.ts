@@ -4,7 +4,7 @@ import { getDb } from "../db/index.js";
 import { upstreams } from "../db/schema.js";
 import { formatToolArgs, getLogger } from "../logger.js";
 import { runtimeSnapshot } from "../mcp/snapshot.js";
-import { isCatalogToolVisible } from "../upstreams/catalog.js";
+import { isCatalogToolVisible, type CatalogKeyScope } from "../upstreams/catalog.js";
 import type { UpstreamPool } from "../upstreams/pool.js";
 
 export class ToolRouter {
@@ -14,11 +14,12 @@ export class ToolRouter {
     userId: string,
     exposedName: string,
     args: Record<string, unknown>,
+    keyScope?: CatalogKeyScope,
   ): Promise<CallToolResult> {
     const log = getLogger("data");
     const started = Date.now();
     const meta = runtimeSnapshot.get(exposedName);
-    if (!isCatalogToolVisible(userId, meta)) {
+    if (!isCatalogToolVisible(userId, meta, keyScope)) {
       log.warn({ tool: exposedName, userId }, "tool not found or disabled");
       return {
         content: [
