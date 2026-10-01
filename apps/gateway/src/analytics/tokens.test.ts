@@ -35,6 +35,26 @@ describe("compressToolSchema", () => {
     assert.equal(status.examples, undefined);
     assert.equal((status.description as string).length, 140);
   });
+
+  it("leaves default and const payloads untouched", () => {
+    const long = "keep-me-long-".repeat(20);
+    const out = compressToolSchema({
+      type: "object",
+      properties: {
+        note: {
+          type: "string",
+          description: "x".repeat(200),
+          default: { description: long },
+          const: { description: long },
+        },
+      },
+    });
+    const note = (out.properties as Record<string, Record<string, unknown>>)
+      .note;
+    assert.deepEqual(note.default, { description: long });
+    assert.deepEqual(note.const, { description: long });
+    assert.equal((note.description as string).length, 140);
+  });
 });
 
 describe("truncateDescription", () => {

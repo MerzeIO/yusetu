@@ -48,6 +48,12 @@ function compressObject(obj: Record<string, unknown>): Record<string, unknown> {
       continue;
     }
 
+    // default/const hold example data, not schema. Do not rewrite nested keys.
+    if (key === "default" || key === "const") {
+      out[key] = structuredClone(value);
+      continue;
+    }
+
     if (key === "properties" && value && typeof value === "object" && !Array.isArray(value)) {
       const props: Record<string, unknown> = {};
       for (const [propName, propSchema] of Object.entries(
